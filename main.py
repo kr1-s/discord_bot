@@ -1,0 +1,72 @@
+# bot.py
+import os
+
+import discord
+import config
+import classes
+import re
+from discord.ext import commands
+
+RU_CHANNELS = '769116898046246934'
+
+intents = discord.Intents().all()
+bot = commands.Bot(command_prefix='!')
+client = discord.Client(intents=intents)
+
+
+@client.event
+async def on_ready():
+    print('Bot connected')
+
+
+# приветствие на сервере
+@bot.event
+async def on_member_join(member):
+    await member.guild.get_channel(config.main_text_channel).send(f"{member.name}, добро пожаловать на сервер!")
+
+
+# команда позволяет найти свободную команту, для корректной работы необходимо находиться в стартовой комнате
+@bot.command()
+async def find_room(ctx, lang=''):
+    if ctx.author.voice is not None:
+        chats = ctx.guild.voice_channels
+        print(ctx.channel.id)
+        print(ctx.guild.get_channel(767363256787402785))
+        print('Участники: ' + str(ctx.guild.members))
+        sort_chats = sort_category(chats)
+        print(chats[1].id)
+        count = []
+        i = 0
+        while i < len(chats):
+            print('Участников: ' + str(len(ctx.guild.get_channel(chats[i].id).members)) + '\nЛимит участников: ' + str(
+                ctx.guild.get_channel(chats[i].id).user_limit))
+            count.append(classes.CountUsers(id_channel=chats[i].id,
+                                            count=len(ctx.guild.get_channel(chats[i].id).members),
+                                            limit=ctx.guild.get_channel(chats[i].id).user_limit)
+                         )
+            print(count[i].vacancy)
+            i += 1
+        # mem = []
+        # limit = []
+        # for channel in chats:
+        #     mem.append(chats[channel].user_limit)
+        #     limit.append(chats[channel].id)
+
+    else:
+        await ctx.channel.send(ctx.author.name + ', для поиска комнаты для игры зайди в голосовой канал Start_room')
+        print(ctx.guild.voice_channels)
+
+
+# выборка id и названия канала из списка
+def sort_category(list_ch):
+    i = 0
+    category = []
+    while i < len(list_ch):
+        category.append(
+            classes.Category(id_category=list_ch[i].category_id, name=list_ch[i].name, limit=list_ch[i].user_limit))
+        i += 1
+    print(category)
+    return category
+
+
+bot.run(config.TOKEN)
