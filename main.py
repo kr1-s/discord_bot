@@ -6,6 +6,7 @@ import config
 import classes
 import re
 from discord.ext import commands
+from operator import itemgetter, attrgetter
 
 RU_CHANNELS = '769116898046246934'
 
@@ -29,28 +30,34 @@ async def on_member_join(member):
 @bot.command()
 async def find_room(ctx, lang=''):
     if ctx.author.voice is not None:
+        current_VC = ctx.author.voice.channel.id  # текущий голосовой канал пользователя
+        print(f'Текущий канал пользователя: {current_VC}')
         chats = ctx.guild.voice_channels
-        print(ctx.channel.id)
-        print(ctx.guild.get_channel(767363256787402785))
         print('Участники: ' + str(ctx.guild.members))
-        sort_chats = sort_category(chats)
-        print(chats[1].id)
+        sort_category(chats)
+
         count = []
         i = 0
+        # 
         while i < len(chats):
-            print('Участников: ' + str(len(ctx.guild.get_channel(chats[i].id).members)) + '\nЛимит участников: ' + str(
-                ctx.guild.get_channel(chats[i].id).user_limit))
-            count.append(classes.CountUsers(id_channel=chats[i].id,
-                                            count=len(ctx.guild.get_channel(chats[i].id).members),
-                                            limit=ctx.guild.get_channel(chats[i].id).user_limit)
-                         )
-            print(count[i].vacancy)
-            i += 1
-        # mem = []
-        # limit = []
-        # for channel in chats:
-        #     mem.append(chats[channel].user_limit)
-        #     limit.append(chats[channel].id)
+            if chats[i].user_limit == 10:
+                count.append(classes.CountUsers(id_channel=chats[i].id,
+                                                count=len(ctx.guild.get_channel(chats[i].id).members),
+                                                limit=ctx.guild.get_channel(chats[i].id).user_limit)
+                             )
+                i += 1
+            else:
+                print('Go next')
+                i += 1
+
+        count.sort(key=lambda x: x.vacancy, reverse=False)
+        print(count)
+        # проверка, находится ли пользователь в стартовых каналах или в самом релевантном
+        if current_VC != count[0].id and current_VC not in config.start_room:
+            await ctx.message.author.move_to(ctx.guild.get_channel(count[0].id))
+            await ctx.channel.send(f'{ctx.author.name}, вы были перемещены в канал {ctx.guild.get_channel(count[0].id)}.')
+        else:
+            await ctx.channel.send(f'{ctx.author.name}, вы находитесь в самом релевантном канале.')
 
     else:
         await ctx.channel.send(ctx.author.name + ', для поиска комнаты для игры зайди в голосовой канал Start_room')
